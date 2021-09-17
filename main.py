@@ -23,7 +23,7 @@ import time
 
 # define parameters
 verbose, epochs, batch_size = 0, 200, 16
-neuron = 100
+kol_neuron = 100
 n_layer = 1
 ModelPath = "model.h5"
 scaler = MinMaxScaler(feature_range=(-1, 1))
@@ -99,9 +99,9 @@ def build_model(train, n_steps, n_length, n_input):
 	model.add(ConvLSTM2D(filters=64, kernel_size=(1, 3), activation='relu', input_shape=(n_steps, 1, n_length, n_features)))
 	model.add(Flatten())
 	model.add(RepeatVector(n_outputs))
-	model.add(LSTM(neuron, activation='relu', return_sequences=True))
+	model.add(LSTM(kol_neuron, activation='relu', return_sequences=True))
 	if n_layer == 2:
-		model.add(LSTM(neuron, activation='relu', return_sequences=True))
+		model.add(LSTM(kol_neuron, activation='relu', return_sequences=True))
 	model.add(TimeDistributed(Dense(200, activation='relu')))
 	model.add(TimeDistributed(Dense(1)))
 	model.compile(loss='mse', optimizer='adam')
@@ -200,23 +200,28 @@ if __name__ == '__main__':
 	df_data = pd.read_sql(sql_data, dbConnection)
 	dbConnection.close()
 	names_data = df_data.columns
-	# print("names_data - ", names_data)
 	d = scaler.fit_transform(df_data)
 	data_norm = pd.DataFrame(d, columns=names_data)
-	# print("Data normalized - \n", data_norm)
 	# End load data
-	start_time = time.time()
 	df_train, df_test = split_dataset(df_data)
 	# define the number of subsequences and the length of subsequences
-	n_steps, n_length = 1, 7
-	n_input = n_length * n_steps
-	score, scores = evaluate_model(df_train, df_test, n_steps, n_length, n_input)
-	# summarize scores
-	summarize_scores('lstm', score, scores)
-	interval =  time.time() - start_time
-	# plot scores
-	days = ['mon', 'tue', 'wed', 'thr', 'fri', 'sat', 'sun']
-	fig = pyplot.subplots()
-	pyplot.plot(days, scores, marker='o', label='lstm')
-	pyplot.show()
-	save_result(ModelPath, 1, interval, epochs, neuron, n_layer, batch_size, n_steps, n_length, score, scores)
+	#n_steps, n_length = 1, 7
+	for n_steps in [1, 2]:
+		for n_length in [7, 14]:
+			for epochs in [50, 100]:
+				for kol_neuron in [100, 200]:
+					for n_layer in [1, 2]:
+						print("n_steps - ", n_steps)
+						print("n_length - ", n_length)
+						n_input = n_length * n_steps
+						start_time = time.time()
+						score, scores = evaluate_model(df_train, df_test, n_steps, n_length, n_input)
+						# summarize scores
+						summarize_scores('lstm', score, scores)
+						interval =  time.time() - start_time
+						# plot scores
+						#days = ['mon', 'tue', 'wed', 'thr', 'fri', 'sat', 'sun']
+						#fig = pyplot.subplots()
+						#pyplot.plot(days, scores, marker='o', label='lstm')
+						#pyplot.show()
+						save_result(ModelPath, 1, interval, epochs, neuron, n_layer, batch_size, n_steps, n_length, score, scores)
