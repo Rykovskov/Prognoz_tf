@@ -22,7 +22,7 @@ import pickle
 import time
 
 # define parameters
-verbose, epochs, batch_size = 0, 200, 16
+verbose, epochs, batch_size = 0, 50, 32
 kol_neuron = 100
 n_layer = 1
 ModelPath = "model.h5"
@@ -46,8 +46,8 @@ def evaluate_forecasts(actual, predicted):
 			s += (actual[row, col] - predicted[row, col])**2
 	score = sqrt(s / (actual.shape[0] * actual.shape[1]))
 	# plot forecasts vs observations
-	for j in range(predicted.shape[1]):
-		show_plot(actual[:, j], predicted[:, j], j + 1)
+	#for j in range(predicted.shape[1]):
+	#	show_plot(actual[:, j], predicted[:, j], j + 1)
 	return score, scores
 
 # split a univariate dataset into train/test sets
@@ -145,25 +145,29 @@ def show_plot(true, pred, title):
 def forecast(model, history, n_steps, n_length, n_input):
 	# flatten data
 	data = array(history)
+	#print("data2 - ", data[0])
 	data = data.reshape((data.shape[0]*data.shape[1], data.shape[2]))
+	#rint("data3 - ", data[0])
 	# retrieve last observations for input data
 	input_x = data[-n_input:, 0]
+	#print("input_x1 - ", input_x[0])
 	# reshape into [samples, time steps, rows, cols, channels]
 	input_x = input_x.reshape((1, n_steps, 1, n_length, 1))
+	#print("input_x2 - ", input_x[0])
 	# forecast the next week
-	yhat = model.predict(input_x, verbose=0)
+	yhat = model.predict(input_x, verbose=2)
 	# we only want the vector forecast
 	yhat = yhat[0]
 	return yhat
 
 #Save result to DB
-def save_result(model_path, articul, calc_time, epoch, neuron, n_layer, batch_size, n_steps, n_length, rmse_all, rmse):
+def save_result(table_name, model_path, articul, calc_time, epoch, neuron, n_layer, batch_size, n_steps, n_length, rmse_all, rmse):
 	f = open(model_path, 'rb')
 	object_model = f.read()
-	alchemyEngine = create_engine('postgresql+psycopg2://prognoz:prognoz@127.0.0.1/prognoz', pool_recycle=3600)
+	alchemyEngine = create_engine('postgresql+psycopg2://prognoz:prognoz@10.200.25.18/prognoz', pool_recycle=3600)
 	dbConnection = alchemyEngine.connect()
 	metadata_obj = MetaData()
-	result_model = Table('result_model', metadata_obj,
+	result_model = Table(table_name, metadata_obj,
 						 Column('articul', Integer),
 						 Column('calc_time', Integer),
 						 Column('epoch', Integer),
@@ -204,24 +208,37 @@ if __name__ == '__main__':
 	data_norm = pd.DataFrame(d, columns=names_data)
 	# End load data
 	df_train, df_test = split_dataset(df_data)
+	#df_train, df_test = split_dataset(data_norm)
 	# define the number of subsequences and the length of subsequences
-	#n_steps, n_length = 1, 7
+	n_steps, n_length = 1, 7
+	table_name = 'result_model'
+	#table_name = 'result_model_norm'
+	#print("df_train - ", df_train)
+	#print("df_test - ", df_test)
+	#n_input = n_length * n_steps
+	#score, scores = evaluate_model(df_train, df_test, n_steps, n_length, n_input)
+	#summarize_scores('lstm', score, scores)
+	#interval = time.time() - start_time
+	# plot scores
+	#days = ['mon', 'tue', 'wed', 'thr', 'fri', 'sat', 'sun']
+	#fig = pyplot.subplots()
+	#pyplot.plot(days, scores, marker='o', label='lstm')
+	#pyplot.show()
 	for n_steps in [1, 2]:
 		for n_length in [7, 14]:
-			for epochs in [50, 100]:
+			for epochs in [25, 50]:
 				for kol_neuron in [100, 200]:
 					for n_layer in [1, 2]:
-						print("n_steps - ", n_steps)
-						print("n_length - ", n_length)
+						print(f"n_steps:{n_steps}  n_length:{n_length}  epochs:{epochs}  kol_neuron:{kol_neuron}  n_layer:{n_layer}")
 						n_input = n_length * n_steps
 						start_time = time.time()
 						score, scores = evaluate_model(df_train, df_test, n_steps, n_length, n_input)
 						# summarize scores
 						summarize_scores('lstm', score, scores)
-						interval =  time.time() - start_time
+						interval = time.time() - start_time
 						# plot scores
 						#days = ['mon', 'tue', 'wed', 'thr', 'fri', 'sat', 'sun']
 						#fig = pyplot.subplots()
 						#pyplot.plot(days, scores, marker='o', label='lstm')
 						#pyplot.show()
-						save_result(ModelPath, 1, interval, epochs, neuron, n_layer, batch_size, n_steps, n_length, score, scores)
+						save_result(table_name, ModelPath, 1, interval, epochs, kol_neuron, n_layer, batch_size, n_steps, n_length, score, scores)
