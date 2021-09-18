@@ -22,7 +22,7 @@ import pickle
 import time
 
 # define parameters
-verbose, epochs, batch_size = 0, 50, 32
+verbose, epochs, batch_size = 3, 50, 32
 kol_neuron = 100
 n_layer = 1
 ModelPath = "model.h5"
