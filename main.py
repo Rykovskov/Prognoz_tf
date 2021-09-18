@@ -198,7 +198,7 @@ def save_result(table_name, model_path, articul, calc_time, epoch, neuron, n_lay
 if __name__ == '__main__':
     #load data from postgres
 	# Load data
-	alchemyEngine = create_engine('postgresql+psycopg2://prognoz:prognoz@127.0.0.1/prognoz', pool_recycle=3600)
+	alchemyEngine = create_engine('postgresql+psycopg2://prognoz:prognoz@10.200.25.18/prognoz', pool_recycle=3600)
 	dbConnection = alchemyEngine.connect()
 	sql_data = '''SELECT val FROM train_data1 WHERE DATE_PART('year', train_data1.dt) in (2019,2020,2021) order by train_data1.dt'''
 	df_data = pd.read_sql(sql_data, dbConnection)
